@@ -1,0 +1,13 @@
+---
+interface Props {
+  change: number | null;
+}
+const { change } = Astro.props;
+---
+{change === null
+  ? <span class="move move-none" title="No previous ranking">–</span>
+  : change > 0
+    ? <span class="move move-up" title={`Up ${change}`}>▲{change}</span>
+    : change < 0
+      ? <span class="move move-down" title={`Down ${-change}`}>▼{-change}</span>
+      : <span class="move move-same" title="No change">=</span>}

@@ -1,0 +1,65 @@
+---
+import Layout from '../layouts/Layout.astro';
+import TeamBadge from '../components/TeamBadge.astro';
+import { getSeasons } from '../lib/sleeper';
+import { managers, standings, teamByRoster, recordStr, fmt } from '../lib/stats';
+
+const seasons = await getSeasons();
+const titleHolders = managers(seasons).filter((m) => m.titles.length).sort((a, b) => b.titles.length - a.titles.length);
+---
+<Layout title="History">
+  <div class="page-head">
+    <p class="eyebrow">Trophy Room</p>
+    <h1>League History</h1>
+    <p>Champions, finalists and every season's best.</p>
+  </div>
+
+  <div class="stack">
+    {seasons.map((s) => {
+      const champ = s.champion ? teamByRoster(s, s.champion) : null;
+      const runner = s.runnerUp ? teamByRoster(s, s.runnerUp) : null;
+      const third = s.thirdPlace ? teamByRoster(s, s.thirdPlace) : null;
+      const top = standings(s)[0];
+      const pf = [...s.teams].sort((a, b) => b.pf - a.pf)[0];
+      return (
+        <section class="card">
+          <h2 style="margin-top:0">{s.season} Season</h2>
+          {champ ? (
+            <div style="display:flex;gap:14px;align-items:center;margin-bottom:16px">
+              <span class="trophy" aria-hidden="true">🏆</span>
+              <div>
+                <div class="stat-label">Champion</div>
+                <TeamBadge team={champ} size={44} />
+              </div>
+            </div>
+          ) : (
+            <p class="muted">
+              {s.status === 'complete' ? 'No champion recorded.' : `Season in progress. Playoffs start week ${s.playoffWeekStart}, and the champion lands here automatically when the title game is final.`}
+            </p>
+          )}
+          <div class="grid grid-3">
+            {runner && <div><div class="stat-label">Runner-up</div><TeamBadge team={runner} size={30} /></div>}
+            {third && <div><div class="stat-label">Third place</div><TeamBadge team={third} size={30} /></div>}
+            {top && <div><div class="stat-label">{s.status === 'complete' ? 'Best regular season' : 'Current #1'}</div><TeamBadge team={top} size={30} /><div class="small muted">{recordStr(top.wins, top.losses, top.ties)}</div></div>}
+            {pf && <div><div class="stat-label">{s.status === 'complete' ? 'Points champ' : 'Points leader'}</div><TeamBadge team={pf} size={30} /><div class="small muted">{fmt(pf.pf, 1)} PF</div></div>}
+          </div>
+        </section>
+      );
+    })}
+  </div>
+
+  {titleHolders.length > 0 && (
+    <>
+      <h2>Championships</h2>
+      <div class="table-wrap">
+        <table>
+          <tbody>
+            {titleHolders.map((m) => (
+              <tr><td><TeamBadge team={m.team} /></td><td>{'🏆'.repeat(m.titles.length)}</td><td class="muted">{m.titles.join(', ')}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  )}
+</Layout>

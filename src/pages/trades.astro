@@ -1,0 +1,19 @@
+---
+import Layout from '../layouts/Layout.astro';
+import TradeCard from '../components/TradeCard.astro';
+import { getSeasons, getPlayers } from '../lib/sleeper';
+
+const seasons = await getSeasons();
+const players = await getPlayers();
+const trades = seasons.flatMap((s) => s.trades.map((t) => ({ t, s })));
+---
+<Layout title="Trades">
+  <div class="page-head">
+    <p class="eyebrow">Trade Log</p>
+    <h1>Trades</h1>
+    <p>{trades.length} {trades.length === 1 ? 'trade' : 'trades'} in league history, newest first.</p>
+  </div>
+  {trades.length === 0
+    ? <div class="card empty">No trades yet. Somebody make a move.</div>
+    : <div class="stack">{trades.map(({ t, s }) => <TradeCard trade={t} season={s} players={players} />)}</div>}
+</Layout>

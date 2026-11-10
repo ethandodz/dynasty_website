@@ -1,0 +1,75 @@
+---
+import Layout from '../layouts/Layout.astro';
+import TeamBadge from '../components/TeamBadge.astro';
+import { getSeasons } from '../lib/sleeper';
+import { teamByRoster, ordinal } from '../lib/stats';
+
+const seasons = await getSeasons();
+const drafts = seasons.flatMap((s) => s.drafts.map((d) => ({ s, d }))).reverse(); // oldest first
+---
+<Layout title="Draft">
+  <div class="page-head">
+    <p class="eyebrow">Draft Boards</p>
+    <h1>Drafts</h1>
+    <p>Every pick, every draft. Rookie drafts show up here automatically once they're done. Scroll sideways on a phone.</p>
+  </div>
+
+  {drafts.length === 0 && <div class="card empty">No completed drafts yet.</div>}
+
+  {[...drafts].reverse().map(({ s, d }) => {
+    const slots = [...new Set(d.picks.map((p) => p.slot))].sort((a, b) => a - b);
+    const slotTeam = new Map(d.picks.filter((p) => p.round === 1).map((p) => [p.slot, teamByRoster(s, p.rosterId)]));
+    const rounds = Array.from({ length: Math.max(...d.picks.map((p) => p.round)) }, (_, i) => i + 1);
+    const cell = new Map(d.picks.map((p) => [`${p.round}-${p.slot}`, p]));
+    return (
+      <section>
+        <h2>{d.season} {d.isStartup ? 'Startup Draft' : 'Rookie Draft'}</h2>
+        <p class="small muted">{d.rounds} rounds · {d.type === 'snake' ? 'Snake' : d.type === 'linear' ? 'Linear' : d.type} · {d.picks.length} picks</p>
+        <div class="table-wrap draft-board">
+          <table>
+            <thead>
+              <tr>
+                <th>Rd</th>
+                {slots.map((slot) => <th><TeamBadge team={slotTeam.get(slot)} size={22} sub={false} fallback={`Slot ${slot}`} /></th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {rounds.map((r) => (
+                <tr>
+                  <th>{ordinal(r)}</th>
+                  {slots.map((slot) => {
+                    const p = cell.get(`${r}-${slot}`);
+                    if (!p) return <td />;
+                    const traded = slotTeam.get(slot)?.rosterId !== p.rosterId;
+                    return (
+                      <td class={`pick pick-${p.position}`} title={`${p.round}.${String(p.slot).padStart(2, '0')} (#${p.pickNo}) ${p.name}${traded ? ` · picked by ${teamByRoster(s, p.rosterId)?.teamName}` : ''}`}>
+                        <span class="pick-no">{p.round}.{String(p.slot).padStart(2, '0')}</span>
+                        <span class="pick-name">{p.name}</span>
+                        <span class="pick-meta">{p.position} · {p.nflTeam}{traded && <> · via trade</>}</span>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    );
+  })}
+</Layout>
+
+<style>
+  .draft-board { max-height: 80vh; }
+  .draft-board table { border-collapse: separate; border-spacing: 3px; }
+  .draft-board th, .draft-board td { border: 0; }
+  .draft-board thead th { position: sticky; top: 0; z-index: 2; background: var(--surface); }
+  .draft-board tbody th { position: sticky; left: 0; z-index: 1; background: var(--surface); text-align: center; }
+  .pick { min-width: 118px; max-width: 140px; white-space: normal; border-radius: 6px; padding: 6px 8px; vertical-align: top; color: #fff; line-height: 1.2; }
+  .pick span { display: block; }
+  .pick-no { font-size: 0.68rem; opacity: 0.85; }
+  .pick-name { font-weight: 700; font-size: 0.85rem; }
+  .pick-meta { font-size: 0.7rem; opacity: 0.9; }
+  .pick-QB { background: #c23a6c; } .pick-RB { background: #0f8a6c; } .pick-WR { background: #2a6fc9; } .pick-TE { background: #c9721e; }
+  .pick-K, .pick-DEF { background: #5b6472; }
+</style>

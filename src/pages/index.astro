@@ -1,0 +1,128 @@
+---
+import Layout from '../layouts/Layout.astro';
+import TeamBadge from '../components/TeamBadge.astro';
+import Movement from '../components/Movement.astro';
+import { LEAGUE_NAME } from '../config';
+import { getCurrentSeason } from '../lib/sleeper';
+import { getRankings } from '../lib/rankings';
+import { standings, teamByRoster, fmt, recordStr, allScores } from '../lib/stats';
+import { url } from '../lib/url';
+
+const season = await getCurrentSeason();
+const rankings = await getRankings();
+const latest = rankings[0];
+const table = standings(season);
+const week = season.lastScoredWeek;
+const lastWeekGames = season.games.filter((g) => g.week === week).sort((a, b) => Math.max(b.a.points, b.b.points) - Math.max(a.a.points, a.b.points));
+const scores = allScores([season]);
+const high = [...scores].sort((a, b) => b.points - a.points)[0];
+const blowout = [...scores].sort((a, b) => (b.points - b.oppPoints) - (a.points - a.oppPoints))[0];
+const pfLeader = [...season.teams].sort((a, b) => b.pf - a.pf)[0];
+const statusText = season.status === 'complete' ? `${season.season} season complete` : season.status === 'in_season' ? `${season.season} season · through week ${week}` : `${season.season} offseason`;
+---
+<Layout>
+  <section class="hero">
+    <p class="eyebrow">Dynasty League · Est. {season.season}</p>
+    <h1>{LEAGUE_NAME}</h1>
+    <p>{statusText}</p>
+  </section>
+
+  {high && (
+    <div class="stat-row">
+      <div class="stat">
+        <div class="stat-label">Best record</div>
+        <div class="stat-value">{recordStr(table[0].wins, table[0].losses, table[0].ties)}</div>
+        <div class="stat-sub">{table[0].teamName}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Points leader</div>
+        <div class="stat-value">{fmt(pfLeader.pf, 1)}</div>
+        <div class="stat-sub">{pfLeader.teamName}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">High score</div>
+        <div class="stat-value">{fmt(high.points)}</div>
+        <div class="stat-sub">{teamByRoster(season, high.rosterId)?.teamName} · Wk {high.week}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Biggest blowout</div>
+        <div class="stat-value">+{fmt(blowout.points - blowout.oppPoints)}</div>
+        <div class="stat-sub">{teamByRoster(season, blowout.rosterId)?.teamName} · Wk {blowout.week}</div>
+      </div>
+    </div>
+  )}
+
+  <div class="grid grid-2" style="margin-top:8px">
+    <section>
+      <div class="section-head">
+        <h2>Power Rankings</h2>
+        <a href={url('/rankings/')}>All rankings →</a>
+      </div>
+      {latest ? (
+        <div class="card">
+          <h3><a href={url(`/rankings/${latest.slug}/`)}>{latest.title}</a></h3>
+          <div class="table-wrap" style="box-shadow:none">
+            <table>
+              <tbody>
+                {latest.entries.map((e) => (
+                  <tr>
+                    <td class="rank-cell">{e.rank}</td>
+                    <td><TeamBadge team={e.team} fallback={e.name} size={28} sub={false} /></td>
+                    <td class="num"><Movement change={e.change} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p style="margin:14px 0 0"><a class="btn" href={url(`/rankings/${latest.slug}/`)}>Read the write-ups</a></p>
+        </div>
+      ) : <div class="card empty">No power rankings yet.</div>}
+    </section>
+
+    <section>
+      <div class="section-head">
+        <h2>Standings</h2>
+        <a href={url('/standings/')}>Full standings →</a>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th></th><th>Team</th><th class="num">W-L</th><th class="num">PF</th></tr></thead>
+          <tbody>
+            {table.map((t, i) => (
+              <tr class:list={{ cutoff: i + 1 === season.playoffTeams }}>
+                <td class="rank-cell">{i + 1}</td>
+                <td><TeamBadge team={t} size={28} sub={false} /></td>
+                <td class="num">{recordStr(t.wins, t.losses, t.ties)}</td>
+                <td class="num">{fmt(t.pf, 1)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p class="small muted">Dashed line = playoff cutoff by record. Division winners and tiebreakers on Sleeper may differ.</p>
+
+      {lastWeekGames.length > 0 && (
+        <>
+          <div class="section-head"><h2>Week {week} Results</h2></div>
+          <div class="table-wrap">
+            <table>
+              <tbody>
+                {lastWeekGames.map((g) => {
+                  const [w, l] = g.a.points >= g.b.points ? [g.a, g.b] : [g.b, g.a];
+                  return (
+                    <tr>
+                      <td><TeamBadge team={teamByRoster(season, w.rosterId)} size={24} sub={false} /></td>
+                      <td class="num"><strong>{fmt(w.points)}</strong></td>
+                      <td class="num muted">{fmt(l.points)}</td>
+                      <td><TeamBadge team={teamByRoster(season, l.rosterId)} size={24} sub={false} /></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </section>
+  </div>
+</Layout>

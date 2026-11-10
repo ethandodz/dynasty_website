@@ -1,0 +1,198 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Avatar from '../../components/Avatar.astro';
+import TeamBadge from '../../components/TeamBadge.astro';
+import Movement from '../../components/Movement.astro';
+import RankChart from '../../components/RankChart.astro';
+import TradeCard from '../../components/TradeCard.astro';
+import { getSeasons, getPlayers, type Team } from '../../lib/sleeper';
+import { getRankings } from '../../lib/rankings';
+import { managers, standings, teamGames, teamByRoster, headToHead, fmt, recordStr } from '../../lib/stats';
+import { url } from '../../lib/url';
+
+export async function getStaticPaths() {
+  const seasons = await getSeasons();
+  return managers(seasons).map((m) => ({ params: { slug: m.team.slug }, props: { ownerId: m.ownerId } }));
+}
+
+const { ownerId } = Astro.props as { ownerId: string };
+const seasons = await getSeasons();
+const players = await getPlayers();
+const rankings = await getRankings();
+const current = seasons[0];
+const manager = managers(seasons).find((m) => m.ownerId === ownerId)!;
+const team: Team = manager.team;
+const isCurrent = current.teams.some((t) => t.ownerId === ownerId);
+const place = standings(current).findIndex((t) => t.ownerId === ownerId) + 1;
+const games = isCurrent ? teamGames(current, team.rosterId) : [];
+
+// Power ranking history (oldest first for the chart)
+const prHistory = rankings
+  .map((r) => ({ r, e: r.entries.find((e) => e.team?.ownerId === ownerId) }))
+  .filter((x) => x.e)
+  .reverse();
+const chartSeason = current.season;
+const chartPoints = prHistory.filter((x) => x.r.season === chartSeason).map((x) => ({ label: `Wk ${x.r.week}`, rank: x.e!.rank }));
+
+// Head to head vs every other manager, all seasons
+const h2h = headToHead(seasons);
+const opponents = managers(seasons)
+  .filter((m) => m.ownerId !== ownerId)
+  .map((m) => ({ m, r: h2h.get(`${ownerId}|${m.ownerId}`) }))
+  .filter((x) => x.r)
+  .sort((a, b) => b.r!.wins - b.r!.losses - (a.r!.wins - a.r!.losses) || b.r!.wins - a.r!.wins);
+
+// Roster grouped by position
+const ORDER = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];
+const roster = isCurrent
+  ? team.players.map((id) => ({ id, ...(players[id] ?? { name: `Player ${id}`, position: '?', team: '' }) }))
+      .sort((a, b) => (ORDER.indexOf(a.position) + 1 || 99) - (ORDER.indexOf(b.position) + 1 || 99) || a.name.localeCompare(b.name))
+  : [];
+
+// Startup draft
+const startup = seasons.flatMap((s) => s.drafts.filter((d) => d.isStartup).map((d) => ({ s, d }))).at(-1);
+const myStartupPicks = startup ? startup.d.picks.filter((p) => teamByRoster(startup.s, p.rosterId)?.ownerId === ownerId) : [];
+
+const trades = seasons.flatMap((s) => s.trades.filter((t) => t.sides.some((x) => teamByRoster(s, x.rosterId)?.ownerId === ownerId)).map((t) => ({ t, s })));
+---
+<Layout title={team.teamName}>
+  <div class="page-head" style="display:flex;gap:16px;align-items:center">
+    <Avatar src={team.avatar} name={team.teamName} size={76} />
+    <div style="min-width:0">
+      <p class="eyebrow">{[team.manager, `@${team.username}`, current.divisions[team.division ?? 0]].filter(Boolean).join(' · ')}</p>
+      <h1 style="margin:0;overflow-wrap:anywhere">{team.teamName}</h1>
+      {manager.titles.length > 0 && <p>🏆 {manager.titles.length}× champion ({manager.titles.join(', ')})</p>}
+    </div>
+  </div>
+
+  {isCurrent && (
+    <div class="stat-row">
+      <div class="stat"><div class="stat-label">{current.season} Record</div><div class="stat-value">{recordStr(team.wins, team.losses, team.ties)}</div><div class="stat-sub">#{place} in the league</div></div>
+      <div class="stat"><div class="stat-label">Points for</div><div class="stat-value">{fmt(team.pf, 1)}</div><div class="stat-sub">{fmt(team.pf / Math.max(games.filter((g) => g.kind === 'regular').length, 1), 1)} per game</div></div>
+      <div class="stat"><div class="stat-label">Points against</div><div class="stat-value">{fmt(team.pa, 1)}</div></div>
+      {prHistory.length > 0 && <div class="stat"><div class="stat-label">Power ranking</div><div class="stat-value">#{prHistory.at(-1)!.e!.rank}</div><div class="stat-sub">{prHistory.at(-1)!.r.title}</div></div>}
+    </div>
+  )}
+
+  {prHistory.length > 0 && (
+    <section>
+      <h2>Power Rankings</h2>
+      <div class="grid grid-2">
+        {chartPoints.length > 0 && <div class="card"><RankChart points={chartPoints} teams={current.teams.length} /></div>}
+        <div class="stack">
+          {[...prHistory].reverse().map(({ r, e }) => (
+            <div class="card">
+              <h3 style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap">
+                <a href={url(`/rankings/${r.slug}/#rank-${e!.rank}`)}>{r.season} Week {r.week}: #{e!.rank}</a>
+                <Movement change={e!.change} />
+              </h3>
+              {e!.paragraphs.map((p) => <p style="margin:0 0 .5em">{p}</p>)}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  {games.length > 0 && (
+    <section>
+      <h2>{current.season} Results</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Wk</th><th>Opponent</th><th></th><th class="num">Score</th></tr></thead>
+          <tbody>
+            {games.map((g) => (
+              <tr>
+                <td>{g.week}{g.kind !== 'regular' && <span class="pill" style="margin-left:6px">{g.kind === 'playoff' ? 'Playoffs' : 'Consolation'}</span>}</td>
+                <td><TeamBadge team={teamByRoster(current, g.oppRosterId)} size={24} sub={false} /></td>
+                <td><span class:list={['pill', g.result === 'W' ? 'pill-w' : g.result === 'L' ? 'pill-l' : '']}>{g.result}</span></td>
+                <td class="num">{fmt(g.points)} – {fmt(g.oppPoints)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  )}
+
+  {opponents.length > 0 && (
+    <section>
+      <h2>Head-to-Head{seasons.length > 1 ? ' (All-Time)' : ''}</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Opponent</th><th class="num">W-L</th><th class="num">PF</th><th class="num">PA</th></tr></thead>
+          <tbody>
+            {opponents.map(({ m, r }) => (
+              <tr>
+                <td><TeamBadge team={m.team} size={24} sub={false} /></td>
+                <td class="num">{recordStr(r!.wins, r!.losses, r!.ties)}</td>
+                <td class="num">{fmt(r!.pf, 1)}</td>
+                <td class="num">{fmt(r!.pa, 1)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  )}
+
+  <div class="grid grid-2">
+    {roster.length > 0 && (
+      <section>
+        <h2>Roster</h2>
+        <div class="table-wrap">
+          <table>
+            <tbody>
+              {roster.map((p) => (
+                <tr><td style="width:1%"><span class={`pos pos-${p.position}`}>{p.position}</span></td><td>{p.name}</td><td class="muted">{p.team}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    )}
+    {myStartupPicks.length > 0 && (
+      <section>
+        <h2>Startup Draft</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Pick</th><th>Player</th></tr></thead>
+            <tbody>
+              {myStartupPicks.map((p) => (
+                <tr><td class="muted">{p.round}.{String(p.slot).padStart(2, '0')}</td><td><span class={`pos pos-${p.position}`}>{p.position}</span> {p.name}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    )}
+  </div>
+
+  {trades.length > 0 && (
+    <section>
+      <h2>Trades</h2>
+      <div class="stack">
+        {trades.map(({ t, s }) => <TradeCard trade={t} season={s} players={players} />)}
+      </div>
+    </section>
+  )}
+
+  {seasons.length > 1 && (
+    <section>
+      <h2>Season by Season</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Season</th><th>Team</th><th class="num">W-L</th><th class="num">PF</th><th>Finish</th></tr></thead>
+          <tbody>
+            {seasons.map((s) => {
+              const t = s.teams.find((x) => x.ownerId === ownerId);
+              if (!t) return null;
+              const finish = s.champion === t.rosterId ? '🏆 Champion' : s.runnerUp === t.rosterId ? 'Runner-up' : s.thirdPlace === t.rosterId ? '3rd place' : `#${standings(s).indexOf(t) + 1} reg. season`;
+              return <tr><td>{s.season}</td><td>{t.teamName}</td><td class="num">{recordStr(t.wins, t.losses, t.ties)}</td><td class="num">{fmt(t.pf, 1)}</td><td>{finish}</td></tr>;
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  )}
+</Layout>

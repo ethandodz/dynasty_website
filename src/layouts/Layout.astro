@@ -1,0 +1,66 @@
+---
+import '../styles/global.css';
+import { LEAGUE_NAME } from '../config';
+import { url } from '../lib/url';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+const { title, description = `${LEAGUE_NAME} dynasty league: power rankings, standings, history and more.` } = Astro.props;
+const fullTitle = title ? `${title} · ${LEAGUE_NAME}` : LEAGUE_NAME;
+const nav = [
+  ['/', 'Home'],
+  ['/rankings/', 'Power Rankings'],
+  ['/standings/', 'Standings'],
+  ['/teams/', 'Teams'],
+  ['/records/', 'Records'],
+  ['/draft/', 'Draft'],
+  ['/trades/', 'Trades'],
+  ['/history/', 'History'],
+];
+const here = Astro.url.pathname.replace(/\/$/, '') || '/';
+const isActive = (href: string) => {
+  const full = url(href).replace(/\/$/, '') || '/';
+  return href === '/' ? here === full : here.startsWith(full);
+};
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta name="theme-color" content="#0b1f3a" />
+    <link rel="icon" href={url('/favicon.svg')} type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap header-inner">
+        <a class="logo" href={url('/')}>
+          <img src={url('/favicon.svg')} alt="" width="34" height="34" />
+          <span>{LEAGUE_NAME}</span>
+        </a>
+      </div>
+      <nav class="site-nav" aria-label="Main">
+        <div class="wrap nav-inner">
+          {nav.map(([href, label]) => (
+            <a href={url(href)} class:list={{ active: isActive(href) }} aria-current={isActive(href) ? 'page' : undefined}>{label}</a>
+          ))}
+        </div>
+      </nav>
+    </header>
+    <main class="wrap">
+      <slot />
+    </main>
+    <footer class="site-footer wrap">
+      <p>{LEAGUE_NAME} Dynasty League · Data from Sleeper, updated automatically.</p>
+    </footer>
+  </body>
+</html>

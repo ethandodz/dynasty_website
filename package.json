@@ -1,0 +1,23 @@
+{
+  "name": "ball-knowers",
+  "version": "1.0.0",
+  "description": "Ball Knowers dynasty league hub",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ethandodz/dynasty_website.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ethandodz/dynasty_website/issues"
+  },
+  "homepage": "https://github.com/ethandodz/dynasty_website#readme",
+  "dependencies": {
+    "astro": "^5.18.2"
+  },
+  "private": true,
+  "type": "module"
+}

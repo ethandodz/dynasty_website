@@ -1,0 +1,69 @@
+---
+import Layout from '../layouts/Layout.astro';
+import TeamBadge from '../components/TeamBadge.astro';
+import { getCurrentSeason } from '../lib/sleeper';
+import { standings, fmt, recordStr } from '../lib/stats';
+
+const season = await getCurrentSeason();
+const overall = standings(season);
+const divisions = Object.entries(season.divisions).map(([id, name]) => ({
+  name,
+  teams: standings(season, season.teams.filter((t) => t.division === Number(id))),
+}));
+const leaguePosition = new Map(overall.map((t, i) => [t.rosterId, i + 1]));
+---
+<Layout title="Standings">
+  <div class="page-head">
+    <p class="eyebrow">{season.season} Season</p>
+    <h1>Standings</h1>
+    <p>Through week {season.lastScoredWeek}. Top {season.playoffTeams} make the playoffs (starting week {season.playoffWeekStart}).</p>
+  </div>
+
+  <h2>League</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th></th><th>Team</th><th class="num">W-L</th><th class="num">PF</th><th class="num">PA</th><th class="num">Streak</th></tr></thead>
+      <tbody>
+        {overall.map((t, i) => (
+          <tr class:list={{ cutoff: i + 1 === season.playoffTeams }}>
+            <td class="rank-cell">{i + 1}</td>
+            <td><TeamBadge team={t} /></td>
+            <td class="num">{recordStr(t.wins, t.losses, t.ties)}</td>
+            <td class="num">{fmt(t.pf)}</td>
+            <td class="num">{fmt(t.pa)}</td>
+            <td class="num">{t.streak ?? ''}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+  <p class="small muted">Sorted by record, then points for. Sleeper's playoff seeding (division winners, tiebreakers) is the official word.</p>
+
+  {divisions.length > 0 && (
+    <>
+      <h2>Divisions</h2>
+      <div class="grid grid-2">
+        {divisions.map((d) => (
+          <section>
+            <h3>{d.name}</h3>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Team</th><th class="num">W-L</th><th class="num">PF</th><th class="num">Lg</th></tr></thead>
+                <tbody>
+                  {d.teams.map((t) => (
+                    <tr>
+                      <td><TeamBadge team={t} size={28} /></td>
+                      <td class="num">{recordStr(t.wins, t.losses, t.ties)}</td>
+                      <td class="num">{fmt(t.pf, 1)}</td>
+                      <td class="num muted">#{leaguePosition.get(t.rosterId)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ))}
+      </div>
+    </>
+  )}
+</Layout>
