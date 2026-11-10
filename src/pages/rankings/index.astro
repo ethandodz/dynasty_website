@@ -1,0 +1,45 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import TeamBadge from '../../components/TeamBadge.astro';
+import { getRankings } from '../../lib/rankings';
+import { url } from '../../lib/url';
+
+const rankings = await getRankings();
+const bySeason = new Map<string, typeof rankings>();
+for (const r of rankings) bySeason.set(r.season, [...(bySeason.get(r.season) ?? []), r]);
+---
+<Layout title="Power Rankings">
+  <div class="page-head">
+    <p class="eyebrow">The Commissioner's Take</p>
+    <h1>Power Rankings</h1>
+    <p>Every power ranking, newest first.</p>
+  </div>
+
+  {rankings.length === 0 && <div class="card empty">No power rankings yet.</div>}
+
+  {[...bySeason].map(([season, list]) => (
+    <section>
+      <h2>{season} Season</h2>
+      <ul class="archive-list">
+        {list.map((r) => {
+          const top = r.entries[0];
+          const riser = [...r.entries].filter((e) => (e.change ?? 0) > 0).sort((a, b) => b.change! - a.change!)[0];
+          return (
+            <li>
+              <a class="card" href={url(`/rankings/${r.slug}/`)}>
+                <span>
+                  <span class="archive-title">{r.title}</span><br />
+                  <span class="small muted">
+                    #1 {top?.team?.teamName ?? top?.name}
+                    {riser && <> · Biggest riser: {riser.team?.teamName ?? riser.name} ▲{riser.change}</>}
+                  </span>
+                </span>
+                <span aria-hidden="true">→</span>
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  ))}
+</Layout>

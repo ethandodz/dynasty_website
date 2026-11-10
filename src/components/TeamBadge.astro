@@ -1,0 +1,24 @@
+---
+import type { Team } from '../lib/sleeper';
+import { teamUrl } from '../lib/url';
+import Avatar from './Avatar.astro';
+interface Props {
+  team: Team | undefined | null;
+  size?: number;
+  sub?: boolean;
+  fallback?: string;
+}
+const { team, size = 32, sub = true, fallback = 'Unknown team' } = Astro.props;
+const subtitle = team ? (team.manager || team.username) : '';
+---
+{team ? (
+  <a class="team-badge" href={teamUrl(team.slug)}>
+    <Avatar src={team.avatar} name={team.teamName} size={size} />
+    <span class="team-badge-text">
+      <span class="team-badge-name">{team.teamName}</span>
+      {sub && subtitle && subtitle !== team.teamName.replace(/^Team /, '') && <span class="team-badge-sub">{subtitle}</span>}
+    </span>
+  </a>
+) : (
+  <span class="team-badge"><Avatar src={null} name={fallback} size={size} /><span class="team-badge-name">{fallback}</span></span>
+)}

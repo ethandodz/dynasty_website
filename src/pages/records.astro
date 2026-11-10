@@ -1,0 +1,79 @@
+---
+import Layout from '../layouts/Layout.astro';
+import TeamBadge from '../components/TeamBadge.astro';
+import { getSeasons } from '../lib/sleeper';
+import { allScores, managers, fmt, type Score } from '../lib/stats';
+
+const seasons = await getSeasons();
+const scores = allScores(seasons);
+const teamFor = (sc: Score) => seasons.find((s) => s.season === sc.season)?.teams.find((t) => t.rosterId === sc.rosterId);
+const oppFor = (sc: Score) => seasons.find((s) => s.season === sc.season)?.teams.find((t) => t.ownerId === sc.oppOwnerId);
+const multi = seasons.length > 1;
+const wk = (sc: Score) => `${multi ? sc.season + ' ' : ''}Wk ${sc.week}${sc.kind === 'playoff' ? ' (playoffs)' : ''}`;
+
+const winners = scores.filter((s) => s.points > s.oppPoints);
+const lists = [
+  { title: 'Highest Scores', rows: [...scores].sort((a, b) => b.points - a.points).slice(0, 10), value: (s: Score) => fmt(s.points), opp: false },
+  { title: 'Lowest Scores', rows: [...scores].sort((a, b) => a.points - b.points).slice(0, 10), value: (s: Score) => fmt(s.points), opp: false },
+  { title: 'Biggest Blowouts', rows: [...winners].sort((a, b) => b.points - b.oppPoints - (a.points - a.oppPoints)).slice(0, 10), value: (s: Score) => `+${fmt(s.points - s.oppPoints)}`, opp: true },
+  { title: 'Closest Games', rows: [...winners].sort((a, b) => a.points - a.oppPoints - (b.points - b.oppPoints)).slice(0, 10), value: (s: Score) => `+${fmt(s.points - s.oppPoints)}`, opp: true },
+  { title: 'Highest Score in a Loss', rows: scores.filter((s) => s.points < s.oppPoints).sort((a, b) => b.points - a.points).slice(0, 10), value: (s: Score) => fmt(s.points), opp: true },
+  { title: 'Lowest Score in a Win', rows: [...winners].sort((a, b) => a.points - b.points).slice(0, 10), value: (s: Score) => fmt(s.points), opp: true },
+];
+
+const all = managers(seasons);
+---
+<Layout title="Records">
+  <div class="page-head">
+    <p class="eyebrow">{multi ? 'All-Time' : `${seasons[0].season} Season`}</p>
+    <h1>Record Book</h1>
+    <p>Regular season and playoff games{multi ? ' from every season' : ''}. Updates automatically.</p>
+  </div>
+
+  <div class="grid grid-2">
+    {lists.map((l) => (
+      <section>
+        <h2>{l.title}</h2>
+        <div class="table-wrap">
+          <table>
+            <tbody>
+              {l.rows.map((s, i) => (
+                <tr>
+                  <td class="rank-cell">{i + 1}</td>
+                  <td>
+                    <TeamBadge team={teamFor(s)} size={24} sub={false} />
+                    <div class="small muted">{wk(s)}{l.opp && <> · vs {oppFor(s)?.teamName} ({fmt(s.oppPoints)})</>}</div>
+                  </td>
+                  <td class="num"><strong>{l.value(s)}</strong></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    ))}
+  </div>
+
+  <h2>{multi ? 'All-Time Standings' : 'Season Totals'}</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Manager</th>{multi && <th class="num">Seasons</th>}<th class="num">W-L</th><th class="num">Win %</th><th class="num">PF</th><th class="num">PA</th>{multi && <th class="num">Titles</th>}</tr></thead>
+      <tbody>
+        {[...all].sort((a, b) => b.wins - a.wins || b.pf - a.pf).map((m) => {
+          const games = m.wins + m.losses + m.ties;
+          return (
+            <tr>
+              <td><TeamBadge team={m.team} size={24} /></td>
+              {multi && <td class="num">{m.seasons}</td>}
+              <td class="num">{m.wins}-{m.losses}{m.ties ? `-${m.ties}` : ''}</td>
+              <td class="num">{games ? ((m.wins + m.ties / 2) / games).toFixed(3).replace(/^0/, '') : '–'}</td>
+              <td class="num">{fmt(m.pf, 1)}</td>
+              <td class="num">{fmt(m.pa, 1)}</td>
+              {multi && <td class="num">{m.titles.length ? '🏆'.repeat(m.titles.length) : ''}</td>}
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  </div>
+</Layout>

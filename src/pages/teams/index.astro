@@ -1,0 +1,33 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Avatar from '../../components/Avatar.astro';
+import { getCurrentSeason } from '../../lib/sleeper';
+import { getRankings } from '../../lib/rankings';
+import { standings, recordStr, fmt } from '../../lib/stats';
+import { teamUrl } from '../../lib/url';
+
+const season = await getCurrentSeason();
+const latest = (await getRankings()).find((r) => r.season === season.season);
+const teams = standings(season);
+---
+<Layout title="Teams">
+  <div class="page-head">
+    <p class="eyebrow">{season.season} Season</p>
+    <h1>Teams</h1>
+  </div>
+  <div class="grid grid-3">
+    {teams.map((t) => {
+      const pr = latest?.entries.find((e) => e.team?.ownerId === t.ownerId);
+      return (
+        <a class="card team-card" href={teamUrl(t.slug)} style="display:flex;gap:14px;align-items:center;color:inherit;text-decoration:none">
+          <Avatar src={t.avatar} name={t.teamName} size={56} />
+          <span style="min-width:0">
+            <strong style="display:block;overflow:hidden;text-overflow:ellipsis">{t.teamName}</strong>
+            <span class="small muted">{t.manager || t.username} · {season.divisions[t.division ?? 0] ?? ''}</span><br />
+            <span class="small">{recordStr(t.wins, t.losses, t.ties)} · {fmt(t.pf, 1)} PF{pr && <> · PR #{pr.rank}</>}</span>
+          </span>
+        </a>
+      );
+    })}
+  </div>
+</Layout>

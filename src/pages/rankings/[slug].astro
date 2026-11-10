@@ -1,0 +1,75 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import TeamBadge from '../../components/TeamBadge.astro';
+import Movement from '../../components/Movement.astro';
+import { getRankings, type Ranking } from '../../lib/rankings';
+import { fmt } from '../../lib/stats';
+import { url } from '../../lib/url';
+
+export async function getStaticPaths() {
+  const rankings = await getRankings();
+  return rankings.map((r, i) => ({
+    params: { slug: r.slug },
+    props: { ranking: r, newer: rankings[i - 1] ?? null, older: rankings[i + 1] ?? null },
+  }));
+}
+
+interface Props {
+  ranking: Ranking;
+  newer: Ranking | null;
+  older: Ranking | null;
+}
+const { ranking, newer, older } = Astro.props;
+const moved = ranking.entries.filter((e) => e.change !== null);
+const riser = [...moved].sort((a, b) => b.change! - a.change!)[0];
+const faller = [...moved].sort((a, b) => a.change! - b.change!)[0];
+---
+<Layout title={`${ranking.season} ${ranking.title}`} description={`${ranking.season} ${ranking.title}: #1 ${ranking.entries[0]?.team?.teamName ?? ''}`}>
+  <div class="page-head">
+    <p class="eyebrow"><a href={url('/rankings/')}>Power Rankings</a> · {ranking.season} Season</p>
+    <h1>{ranking.title}</h1>
+    {ranking.intro.map((p) => <p class="pr-intro">{p}</p>)}
+  </div>
+
+  {(riser?.change ?? 0) > 0 && (
+    <div class="stat-row" style="margin-bottom:20px">
+      <div class="stat">
+        <div class="stat-label">Biggest riser</div>
+        <div class="stat-value" style="color:var(--up)">▲{riser.change}</div>
+        <div class="stat-sub">{riser.team?.teamName ?? riser.name}</div>
+      </div>
+      {(faller?.change ?? 0) < 0 && (
+        <div class="stat">
+          <div class="stat-label">Biggest faller</div>
+          <div class="stat-value" style="color:var(--down)">▼{-faller.change!}</div>
+          <div class="stat-sub">{faller.team?.teamName ?? faller.name}</div>
+        </div>
+      )}
+    </div>
+  )}
+
+  <ol class="pr-list">
+    {ranking.entries.map((e) => (
+      <li class="pr-item" id={`rank-${e.rank}`}>
+        <div class="pr-rank">
+          <span class="pr-num">{e.rank}</span>
+          <Movement change={e.change} />
+        </div>
+        <div>
+          <div class="pr-head">
+            <TeamBadge team={e.team} fallback={e.name} size={40} />
+            {e.record && <span class="pr-meta">{e.record}{e.pf !== null && <> · {fmt(e.pf, 1)} PF</>}</span>}
+          </div>
+          <div class="pr-body">
+            {e.paragraphs.map((p) => <p>{p}</p>)}
+          </div>
+        </div>
+      </li>
+    ))}
+  </ol>
+
+  <nav class="section-head" aria-label="More rankings">
+    {older ? <a href={url(`/rankings/${older.slug}/`)}>← {older.season} {older.title}</a> : <span />}
+    {newer ? <a href={url(`/rankings/${newer.slug}/`)}>{newer.season} {newer.title} →</a> : <span />}
+  </nav>
+</Layout>

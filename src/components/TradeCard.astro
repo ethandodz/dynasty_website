@@ -1,0 +1,32 @@
+---
+import TeamBadge from './TeamBadge.astro';
+import type { Player, Season, Trade } from '../lib/sleeper';
+import { pickLabel, teamByRoster } from '../lib/stats';
+interface Props {
+  trade: Trade;
+  season: Season;
+  players: Record<string, Player>;
+}
+const { trade, season, players } = Astro.props;
+const date = new Date(trade.created).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/New_York' });
+---
+<article class="card">
+  <p class="small muted" style="margin:0 0 12px">{date} · {trade.week ? `Week ${trade.week}` : 'Offseason'}</p>
+  <div class="trade-sides">
+    {trade.sides.map((side) => (
+      <div>
+        <TeamBadge team={teamByRoster(season, side.rosterId)} size={30} />
+        <div class="small muted" style="margin-top:6px">receives</div>
+        <ul>
+          {side.players.map((id) => {
+            const p = players[id];
+            return <li>{p ? <><span class={`pos pos-${p.position}`}>{p.position}</span> {p.name} <span class="muted small">{p.team}</span></> : `Player ${id}`}</li>;
+          })}
+          {side.picks.map((p) => <li><span class="pos" style="background:var(--gold);color:#1a1300">PICK</span> {pickLabel(season, p)}</li>)}
+          {side.faab > 0 && <li>${side.faab} FAAB</li>}
+          {!side.players.length && !side.picks.length && !side.faab && <li class="muted">Nothing</li>}
+        </ul>
+      </div>
+    ))}
+  </div>
+</article>
