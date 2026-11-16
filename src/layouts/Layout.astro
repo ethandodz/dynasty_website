@@ -6,8 +6,10 @@ import { url } from '../lib/url';
 interface Props {
   title?: string;
   description?: string;
+  /** Use more of the screen width (for the draft board). */
+  wide?: boolean;
 }
-const { title, description = `${LEAGUE_NAME} dynasty league: power rankings, standings, history and more.` } = Astro.props;
+const { title, wide = false, description = `${LEAGUE_NAME} dynasty league: power rankings, standings, history and more.` } = Astro.props;
 const fullTitle = title ? `${title} · ${LEAGUE_NAME}` : LEAGUE_NAME;
 const nav = [
   ['/', 'Home'],
@@ -59,7 +61,7 @@ const isActive = (href: string) => {
         </div>
       </nav>
     </header>
-    <main class="wrap">
+    <main class:list={["wrap", { "wrap-wide": wide }]}>
       <slot />
     </main>
     <footer class="site-footer wrap">

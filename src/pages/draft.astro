@@ -1,13 +1,17 @@
 ---
+// Sleeper-style draft board: one row per round, one column per draft slot.
+// On narrow screens each round wraps into rows of 4 so nothing scrolls sideways.
 import Layout from '../layouts/Layout.astro';
+import Avatar from '../components/Avatar.astro';
 import { getSeasons } from '../lib/sleeper';
-import { teamByRoster, ordinal } from '../lib/stats';
+import { teamByRoster } from '../lib/stats';
 import { teamUrl } from '../lib/url';
 
 const seasons = await getSeasons();
 const drafts = seasons.flatMap((s) => s.drafts.map((d) => ({ s, d }))); // newest first
+const short = (name: string) => name.replace(/^Team /, '');
 ---
-<Layout title="Draft">
+<Layout title="Draft" wide>
   <div class="page-head">
     <p class="eyebrow">Draft Boards</p>
     <h1>Drafts</h1>
@@ -17,50 +21,112 @@ const drafts = seasons.flatMap((s) => s.drafts.map((d) => ({ s, d }))); // newes
   {drafts.length === 0 && <div class="card empty">No completed drafts yet.</div>}
 
   {drafts.map(({ s, d }) => {
+    const slots = [...new Set(d.picks.map((p) => p.slot))].sort((a, b) => a - b);
     const rounds = [...new Set(d.picks.map((p) => p.round))].sort((a, b) => a - b);
-    const id = `draft-${d.id}`;
+    const slotTeam = new Map(d.picks.filter((p) => p.round === 1).map((p) => [p.slot, teamByRoster(s, p.rosterId)]));
+    const cell = new Map(d.picks.map((p) => [`${p.round}-${p.slot}`, p]));
     return (
-      <section id={id}>
-        <h2>{d.season} {d.isStartup ? 'Startup Draft' : 'Rookie Draft'}</h2>
-        <p class="small muted">{d.rounds} rounds · {d.type === 'snake' ? 'Snake' : d.type === 'linear' ? 'Linear' : d.type} · {d.picks.length} picks</p>
-        {rounds.length > 3 && (
-          <nav class="round-jump" aria-label="Jump to round">
-            {rounds.map((r) => <a href={`#${id}-r${r}`}>{r}</a>)}
-          </nav>
-        )}
-        {rounds.map((r) => (
-          <div class="round" id={`${id}-r${r}`}>
-            <h3>{ordinal(r)} Round</h3>
-            <ol class="picks">
-              {d.picks.filter((p) => p.round === r).map((p) => {
-                const team = teamByRoster(s, p.rosterId);
+      <section class="board-section">
+        <div class="board-title">
+          <h2>{d.season} {d.isStartup ? 'Startup Draft' : 'Rookie Draft'}</h2>
+          <span class="small muted">{d.rounds} rounds · {d.type === 'snake' ? 'Snake' : d.type === 'linear' ? 'Linear' : d.type} · {d.picks.length} picks</span>
+        </div>
+        <div class="legend small">
+          <span class="lg lg-QB">QB</span><span class="lg lg-RB">RB</span><span class="lg lg-WR">WR</span><span class="lg lg-TE">TE</span><span class="lg lg-K">K</span>
+          <span class="muted">· ⇄ = pick was traded</span>
+        </div>
+        <div class="board" style={`--cols:${slots.length}`}>
+          <div class="board-row board-head" aria-hidden="true">
+            <span class="rnd"></span>
+            <div class="cells">
+              {slots.map((slot) => {
+                const t = slotTeam.get(slot);
                 return (
-                  <li class={`pick pick-${p.position}`}>
-                    <span class="pick-top"><span>{p.round}.{String(p.slot).padStart(2, '0')}</span><span>{p.position} · {p.nflTeam}</span></span>
-                    <span class="pick-name">{p.name}</span>
-                    {team ? <a class="pick-team" href={teamUrl(team.slug)}>{team.teamName}</a> : <span class="pick-team">Roster {p.rosterId}</span>}
-                  </li>
+                  <a class="head-cell" href={t ? teamUrl(t.slug) : undefined} title={t?.teamName}>
+                    <Avatar src={t?.avatar ?? null} name={t?.teamName ?? `Slot ${slot}`} size={22} />
+                    <span>{t ? short(t.teamName) : `Slot ${slot}`}</span>
+                  </a>
                 );
               })}
-            </ol>
+            </div>
           </div>
-        ))}
+          {rounds.map((r) => (
+            <div class="board-row">
+              <span class="rnd">{r}</span>
+              <div class="cells">
+                {slots.map((slot) => {
+                  const p = cell.get(`${r}-${slot}`);
+                  if (!p) return <span class="pick empty-pick" />;
+                  const by = teamByRoster(s, p.rosterId);
+                  const traded = slotTeam.get(slot)?.rosterId !== p.rosterId;
+                  const parts = p.name.split(' ');
+                  const first = parts.length > 1 ? parts[0] : '';
+                  const last = parts.length > 1 ? parts.slice(1).join(' ') : p.name;
+                  return (
+                    <span class={`pick pos-bg-${p.position}`} title={`${p.round}.${String(p.slot).padStart(2, '0')} (#${p.pickNo}) ${p.name}, ${p.position} ${p.nflTeam} · ${by?.teamName ?? ''}${traded ? ' (traded pick)' : ''}`}>
+                      <span class="pick-top"><span class="pick-pos">{p.position}·{p.nflTeam}</span><span class="pick-no">{traded && '⇄'}{p.round}.{String(p.slot).padStart(2, '0')}</span></span>
+                      <span class="pick-first">{first}</span>
+                      <span class="pick-last">{first && <span class="pick-init">{first[0]}. </span>}{last}</span>
+                      <span class="pick-team">{by ? short(by.teamName) : ''}</span>
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
     );
   })}
 </Layout>
 
 <style>
-  .round-jump { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
-  .round-jump a { min-width: 34px; text-align: center; padding: 4px 6px; border-radius: 6px; background: var(--surface); border: 1px solid var(--border); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
-  .round { scroll-margin-top: 110px; }
-  .round h3 { margin: 18px 0 8px; }
-  .picks { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
-  .pick { border-radius: 8px; padding: 7px 9px; color: #fff; line-height: 1.25; min-width: 0; }
-  .pick-top { display: flex; justify-content: space-between; gap: 6px; font-size: 0.7rem; opacity: 0.9; }
-  .pick-name { display: block; font-weight: 700; font-size: 0.9rem; overflow-wrap: anywhere; }
-  .pick-team { display: block; font-size: 0.72rem; color: #fff; opacity: 0.9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .pick-QB { background: #c23a6c; } .pick-RB { background: #0f8a6c; } .pick-WR { background: #2a6fc9; } .pick-TE { background: #c9721e; }
-  .pick-K, .pick-DEF { background: #5b6472; }
-  @media (max-width: 400px) { .picks { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .board-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-top: 1.2em; }
+  .board-title h2 { margin: 0; }
+  .legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0 10px; }
+  .lg { padding: 1px 8px; border-radius: 4px; font-weight: 700; color: #10151d; font-size: 0.75rem; }
+
+  /* Sleeper-ish position colors, dark text on bright cells */
+  .pos-bg-QB, .lg-QB { background: #ff7aa2; }
+  .pos-bg-RB, .lg-RB { background: #2fd6b5; }
+  .pos-bg-WR, .lg-WR { background: #6cb7ff; }
+  .pos-bg-TE, .lg-TE { background: #ffb15c; }
+  .pos-bg-K, .lg-K, .pos-bg-DEF { background: #c4a5ff; }
+
+  .board { display: grid; gap: 3px; }
+  .board-row { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 4px; align-items: stretch; }
+  .rnd { font-family: var(--display); font-weight: 600; color: var(--muted); font-size: 0.85rem; display: flex; align-items: center; justify-content: center; }
+  .cells { display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: 3px; }
+
+  .board-head { position: sticky; top: 104px; z-index: 2; background: var(--bg); padding: 4px 0; }
+  .head-cell { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; color: var(--text); font-size: 0.68rem; font-weight: 600; text-align: center; line-height: 1.15; }
+  .head-cell span:last-child { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .head-cell:hover { text-decoration: none; color: var(--accent); }
+
+  .pick { display: flex; flex-direction: column; min-width: 0; border-radius: 4px; padding: 3px 5px 4px; color: #10151d; line-height: 1.15; }
+  .pick > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pick-top { display: flex; justify-content: space-between; gap: 4px; font-size: 0.6rem; font-weight: 600; opacity: 0.75; }
+  .pick-pos { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .pick-no { flex: none; }
+  .pick-init { display: none; }
+  .pick-first { font-size: 0.66rem; }
+  .pick-last { font-size: 0.78rem; font-weight: 800; }
+  .pick-team { display: none; font-size: 0.6rem; opacity: 0.75; }
+  .empty-pick { background: var(--surface-2); }
+
+  /* Narrow screens: no team header row, 4 picks per line, show who picked in each cell */
+  @media (max-width: 899px) {
+    .board-head { display: none; }
+    .board-row { grid-template-columns: 1fr; gap: 2px; margin-bottom: 8px; }
+    .rnd { justify-content: flex-start; }
+    .rnd::before { content: 'Round\00a0'; }
+    .cells { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .pick-team { display: block; }
+    .pick-first { display: none; }
+    .pick-init { display: inline; }
+  }
+  @media (min-width: 600px) and (max-width: 899px) {
+    .cells { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+  }
+  @media (max-width: 960px) { .board-head { top: 0; } }
 </style>
