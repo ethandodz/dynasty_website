@@ -49,6 +49,10 @@ The article...
 Use usernames, team names or first names for the two teams. The site finds the game and
 adds the scoreboard, records and top performers from Sleeper automatically.
 
+Recaps are written automatically every Tuesday morning by a scheduled Claude session.
+It follows [`scripts/recap-guide.md`](scripts/recap-guide.md) and uses
+`python3 scripts/recap_facts.py <week>` to pull each week's box scores.
+
 ## Each new season
 
 When the league renews on Sleeper it gets a **new league ID**. Paste the new ID into
