@@ -1,0 +1,31 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import RecapCard from '../../components/RecapCard.astro';
+import { getRecapWeeks, type RecapWeek } from '../../lib/recaps';
+import { getPlayers } from '../../lib/sleeper';
+import { url } from '../../lib/url';
+
+export async function getStaticPaths() {
+  const weeks = await getRecapWeeks();
+  return weeks.map((w, i) => ({ params: { slug: w.slug }, props: { w, newer: weeks[i - 1] ?? null, older: weeks[i + 1] ?? null } }));
+}
+const { w, newer, older } = Astro.props as { w: RecapWeek; newer: RecapWeek | null; older: RecapWeek | null };
+const players = await getPlayers();
+---
+<Layout title={`Week ${w.week} Recaps`} description={`${w.season.season} Week ${w.week} matchup recaps: ${w.recaps[0]?.headline ?? ''}`}>
+  <div class="page-head">
+    <p class="eyebrow"><a href={url('/recaps/')}>Recaps</a> · {w.season.season} Season</p>
+    <h1>Week {w.week} Recaps</h1>
+    {w.intro.map((p) => <p class="pr-intro">{p}</p>)}
+  </div>
+  <nav class="recap-jump" aria-label="Matchups this week">
+    {w.recaps.map((r) => <a href={`#${r.anchor}`}>{r.winner.teamName.replace(/^Team /, '')} vs {r.loser.teamName.replace(/^Team /, '')}</a>)}
+  </nav>
+  <div class="stack">
+    {w.recaps.map((r) => <RecapCard recap={r} season={w.season} week={w.week} players={players} />)}
+  </div>
+  <nav class="section-head" aria-label="More recaps">
+    {older ? <a href={url(`/recaps/${older.slug}/`)}>← Week {older.week}</a> : <span />}
+    {newer ? <a href={url(`/recaps/${newer.slug}/`)}>Week {newer.week} →</a> : <span />}
+  </nav>
+</Layout>

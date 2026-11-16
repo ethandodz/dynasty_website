@@ -1,0 +1,33 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getRecapWeeks } from '../../lib/recaps';
+import { fmt } from '../../lib/stats';
+import { url } from '../../lib/url';
+
+const weeks = await getRecapWeeks();
+---
+<Layout title="Recaps">
+  <div class="page-head">
+    <p class="eyebrow">Weekly Matchup Recaps</p>
+    <h1>Recaps</h1>
+    <p>Every matchup, every week: who went off, who flopped and who should be embarrassed.</p>
+  </div>
+  {weeks.length === 0 && <div class="card empty">No recaps yet.</div>}
+  <ul class="archive-list">
+    {weeks.map((w) => {
+      const lead = w.recaps[0];
+      const best = [...w.recaps].sort((a, b) => Math.max(b.game.a.points, b.game.b.points) - Math.max(a.game.a.points, a.game.b.points))[0];
+      return (
+        <li>
+          <a class="card" href={url(`/recaps/${w.slug}/`)}>
+            <span>
+              <span class="archive-title">{w.season.season} Week {w.week}</span><br />
+              <span class="small muted">{lead?.headline}{best && <> · High score {fmt(Math.max(best.game.a.points, best.game.b.points))}</>}</span>
+            </span>
+            <span aria-hidden="true">→</span>
+          </a>
+        </li>
+      );
+    })}
+  </ul>
+</Layout>

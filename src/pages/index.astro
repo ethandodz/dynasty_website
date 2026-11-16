@@ -7,10 +7,12 @@ import { getCurrentSeason } from '../lib/sleeper';
 import { getRankings } from '../lib/rankings';
 import { standings, teamByRoster, fmt, recordStr, allScores } from '../lib/stats';
 import { url } from '../lib/url';
+import { getRecapWeeks } from '../lib/recaps';
 
 const season = await getCurrentSeason();
 const rankings = await getRankings();
 const latest = rankings[0];
+const latestRecaps = (await getRecapWeeks())[0];
 const table = standings(season);
 const week = season.lastScoredWeek;
 const lastWeekGames = season.games.filter((g) => g.week === week).sort((a, b) => Math.max(b.a.points, b.b.points) - Math.max(a.a.points, a.b.points));
@@ -50,6 +52,24 @@ const statusText = season.status === 'complete' ? `${season.season} season compl
         <div class="stat-sub">{teamByRoster(season, blowout.rosterId)?.teamName} · Wk {blowout.week}</div>
       </div>
     </div>
+  )}
+
+  {latestRecaps && (
+    <section>
+      <div class="section-head">
+        <h2>Week {latestRecaps.week} Recaps</h2>
+        <a href={url('/recaps/')}>All recaps →</a>
+      </div>
+      <div class="grid grid-2">
+        {latestRecaps.recaps.slice(0, 4).map((r) => (
+          <a class="card recap-teaser" href={url(`/recaps/${latestRecaps.slug}/#${r.anchor}`)}>
+            <span class="small muted">{r.winner.teamName} def. {r.loser.teamName}</span>
+            <strong>{r.headline}</strong>
+          </a>
+        ))}
+      </div>
+      <p style="margin:12px 0 0"><a class="btn" href={url(`/recaps/${latestRecaps.slug}/`)}>All {latestRecaps.recaps.length} Week {latestRecaps.week} matchups</a></p>
+    </section>
   )}
 
   <div class="grid grid-2" style="margin-top:8px">
@@ -103,7 +123,10 @@ const statusText = season.status === 'complete' ? `${season.season} season compl
 
       {lastWeekGames.length > 0 && (
         <>
-          <div class="section-head"><h2>Week {week} Results</h2></div>
+          <div class="section-head">
+            <h2>Week {week} Results</h2>
+            {latestRecaps?.week === week && <a href={url(`/recaps/${latestRecaps.slug}/`)}>Read the recaps →</a>}
+          </div>
           <div class="table-wrap">
             <table>
               <tbody>
