@@ -55,7 +55,7 @@ const titleHolders = managers(seasons).filter((m) => m.titles.length).sort((a, b
         <table>
           <tbody>
             {titleHolders.map((m) => (
-              <tr><td><TeamBadge team={m.team} /></td><td>{'🏆'.repeat(m.titles.length)}</td><td class="muted">{m.titles.join(', ')}</td></tr>
+              <tr><td class="team"><TeamBadge team={m.team} /></td><td>{'🏆'.repeat(m.titles.length)}</td><td class="muted">{m.titles.join(', ')}</td></tr>
             ))}
           </tbody>
         </table>

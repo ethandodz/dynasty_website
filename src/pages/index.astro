@@ -67,7 +67,7 @@ const statusText = season.status === 'complete' ? `${season.season} season compl
                 {latest.entries.map((e) => (
                   <tr>
                     <td class="rank-cell">{e.rank}</td>
-                    <td><TeamBadge team={e.team} fallback={e.name} size={28} sub={false} /></td>
+                    <td class="team"><TeamBadge team={e.team} fallback={e.name} size={28} sub={false} /></td>
                     <td class="num"><Movement change={e.change} /></td>
                   </tr>
                 ))}
@@ -91,7 +91,7 @@ const statusText = season.status === 'complete' ? `${season.season} season compl
             {table.map((t, i) => (
               <tr class:list={{ cutoff: i + 1 === season.playoffTeams }}>
                 <td class="rank-cell">{i + 1}</td>
-                <td><TeamBadge team={t} size={28} sub={false} /></td>
+                <td class="team"><TeamBadge team={t} size={28} sub={false} /></td>
                 <td class="num">{recordStr(t.wins, t.losses, t.ties)}</td>
                 <td class="num">{fmt(t.pf, 1)}</td>
               </tr>
@@ -111,10 +111,10 @@ const statusText = season.status === 'complete' ? `${season.season} season compl
                   const [w, l] = g.a.points >= g.b.points ? [g.a, g.b] : [g.b, g.a];
                   return (
                     <tr>
-                      <td><TeamBadge team={teamByRoster(season, w.rosterId)} size={24} sub={false} /></td>
+                      <td class="team half"><TeamBadge team={teamByRoster(season, w.rosterId)} size={24} sub={false} /></td>
                       <td class="num"><strong>{fmt(w.points)}</strong></td>
                       <td class="num muted">{fmt(l.points)}</td>
-                      <td><TeamBadge team={teamByRoster(season, l.rosterId)} size={24} sub={false} /></td>
+                      <td class="team half"><TeamBadge team={teamByRoster(season, l.rosterId)} size={24} sub={false} /></td>
                     </tr>
                   );
                 })}

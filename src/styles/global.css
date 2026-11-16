@@ -88,8 +88,8 @@ main.wrap { padding-top: 28px; padding-bottom: 40px; }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; }
 .card h2:first-child, .card h3:first-child { margin-top: 0; }
 .grid { display: grid; gap: 16px; }
-.grid-2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
-.grid-3 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.grid-2 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr)); }
+.grid-3 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); }
 .stack > * + * { margin-top: 16px; }
 
 .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
@@ -101,7 +101,20 @@ main.wrap { padding-top: 28px; padding-bottom: 40px; }
 /* Tables */
 .table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
 table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
-th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+td.num, th.num, .rank-cell { white-space: nowrap; }
+/* The team column soaks up spare width; long names get "…" instead of widening the table. */
+td.team { width: 100%; max-width: 0; }
+td.team.half { width: 50%; }
+td.team .team-badge { max-width: 100%; }
+td.team .small { overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  th, td { padding: 8px 6px; }
+  th:first-child, td:first-child { padding-left: 10px; }
+  th:last-child, td:last-child { padding-right: 10px; }
+  table { font-size: 0.9rem; }
+  .hide-sm { display: none; }
+}
 th { font-family: var(--display); font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.8rem; color: var(--muted); background: var(--surface-2); }
 tr:last-child td { border-bottom: 0; }
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
@@ -113,8 +126,8 @@ tr.cutoff td { border-bottom: 2px dashed var(--gold); }
 a.team-badge:hover { text-decoration: none; }
 a.team-badge:hover .team-badge-name { color: var(--accent); }
 .team-badge-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
-.team-badge-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
-.team-badge-sub { color: var(--muted); font-size: 0.8rem; }
+.team-badge-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.team-badge-sub { color: var(--muted); font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .avatar { border-radius: 50%; object-fit: cover; flex: none; background: var(--surface-2); }
 .avatar-fallback { display: inline-flex; align-items: center; justify-content: center; background: var(--navy-2); color: #fff; font-weight: 700; position: relative; overflow: hidden; }
 .avatar-fallback img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
@@ -127,17 +140,19 @@ a.team-badge:hover .team-badge-name { color: var(--accent); }
 
 /* Power rankings */
 .pr-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
-.pr-item { display: grid; grid-template-columns: 56px 1fr; gap: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; }
+.pr-item { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; }
 .pr-rank { display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .pr-num { font-family: var(--display); font-size: 2.2rem; font-weight: 700; line-height: 1; }
 .pr-item:nth-child(1) .pr-num { color: var(--gold-text); }
+.pr-head > * { max-width: 100%; }
+.pr-body { overflow-wrap: break-word; }
 .pr-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-bottom: 8px; }
 .pr-meta { color: var(--muted); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
 .pr-body p { margin: 0 0 0.6em; }
 .pr-body p:last-child { margin-bottom: 0; }
 .pr-intro { font-size: 1.05rem; }
 @media (max-width: 520px) {
-  .pr-item { grid-template-columns: 40px 1fr; padding: 14px 12px; gap: 10px; }
+  .pr-item { grid-template-columns: 40px minmax(0, 1fr); padding: 14px 12px; gap: 10px; }
   .pr-num { font-size: 1.7rem; }
 }
 

@@ -22,16 +22,16 @@ const leaguePosition = new Map(overall.map((t, i) => [t.rosterId, i + 1]));
   <h2>League</h2>
   <div class="table-wrap">
     <table>
-      <thead><tr><th></th><th>Team</th><th class="num">W-L</th><th class="num">PF</th><th class="num">PA</th><th class="num">Streak</th></tr></thead>
+      <thead><tr><th></th><th>Team</th><th class="num">W-L</th><th class="num">PF</th><th class="num hide-sm">PA</th><th class="num hide-sm">Streak</th></tr></thead>
       <tbody>
         {overall.map((t, i) => (
           <tr class:list={{ cutoff: i + 1 === season.playoffTeams }}>
             <td class="rank-cell">{i + 1}</td>
-            <td><TeamBadge team={t} /></td>
+            <td class="team"><TeamBadge team={t} /></td>
             <td class="num">{recordStr(t.wins, t.losses, t.ties)}</td>
             <td class="num">{fmt(t.pf)}</td>
-            <td class="num">{fmt(t.pa)}</td>
-            <td class="num">{t.streak ?? ''}</td>
+            <td class="num hide-sm">{fmt(t.pa)}</td>
+            <td class="num hide-sm">{t.streak ?? ''}</td>
           </tr>
         ))}
       </tbody>
@@ -52,7 +52,7 @@ const leaguePosition = new Map(overall.map((t, i) => [t.rosterId, i + 1]));
                 <tbody>
                   {d.teams.map((t) => (
                     <tr>
-                      <td><TeamBadge team={t} size={28} /></td>
+                      <td class="team"><TeamBadge team={t} size={28} /></td>
                       <td class="num">{recordStr(t.wins, t.losses, t.ties)}</td>
                       <td class="num">{fmt(t.pf, 1)}</td>
                       <td class="num muted">#{leaguePosition.get(t.rosterId)}</td>

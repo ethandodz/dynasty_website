@@ -40,7 +40,7 @@ const all = managers(seasons);
               {l.rows.map((s, i) => (
                 <tr>
                   <td class="rank-cell">{i + 1}</td>
-                  <td>
+                  <td class="team">
                     <TeamBadge team={teamFor(s)} size={24} sub={false} />
                     <div class="small muted">{wk(s)}{l.opp && <> · vs {oppFor(s)?.teamName} ({fmt(s.oppPoints)})</>}</div>
                   </td>
@@ -57,18 +57,18 @@ const all = managers(seasons);
   <h2>{multi ? 'All-Time Standings' : 'Season Totals'}</h2>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Manager</th>{multi && <th class="num">Seasons</th>}<th class="num">W-L</th><th class="num">Win %</th><th class="num">PF</th><th class="num">PA</th>{multi && <th class="num">Titles</th>}</tr></thead>
+      <thead><tr><th>Manager</th>{multi && <th class="num">Seasons</th>}<th class="num">W-L</th><th class="num">Win %</th><th class="num hide-sm">PF</th><th class="num hide-sm">PA</th>{multi && <th class="num">Titles</th>}</tr></thead>
       <tbody>
         {[...all].sort((a, b) => b.wins - a.wins || b.pf - a.pf).map((m) => {
           const games = m.wins + m.losses + m.ties;
           return (
             <tr>
-              <td><TeamBadge team={m.team} size={24} /></td>
+              <td class="team"><TeamBadge team={m.team} size={24} /></td>
               {multi && <td class="num">{m.seasons}</td>}
               <td class="num">{m.wins}-{m.losses}{m.ties ? `-${m.ties}` : ''}</td>
               <td class="num">{games ? ((m.wins + m.ties / 2) / games).toFixed(3).replace(/^0/, '') : '–'}</td>
-              <td class="num">{fmt(m.pf, 1)}</td>
-              <td class="num">{fmt(m.pa, 1)}</td>
+              <td class="num hide-sm">{fmt(m.pf, 1)}</td>
+              <td class="num hide-sm">{fmt(m.pa, 1)}</td>
               {multi && <td class="num">{m.titles.length ? '🏆'.repeat(m.titles.length) : ''}</td>}
             </tr>
           );
