@@ -1,75 +1,66 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import TeamBadge from '../components/TeamBadge.astro';
 import { getSeasons } from '../lib/sleeper';
 import { teamByRoster, ordinal } from '../lib/stats';
+import { teamUrl } from '../lib/url';
 
 const seasons = await getSeasons();
-const drafts = seasons.flatMap((s) => s.drafts.map((d) => ({ s, d }))).reverse(); // oldest first
+const drafts = seasons.flatMap((s) => s.drafts.map((d) => ({ s, d }))); // newest first
 ---
 <Layout title="Draft">
   <div class="page-head">
     <p class="eyebrow">Draft Boards</p>
     <h1>Drafts</h1>
-    <p>Every pick, every draft. Rookie drafts show up here automatically once they're done. Scroll sideways on a phone.</p>
+    <p>Every pick, every draft. Rookie drafts show up here on their own once they're done.</p>
   </div>
 
   {drafts.length === 0 && <div class="card empty">No completed drafts yet.</div>}
 
-  {[...drafts].reverse().map(({ s, d }) => {
-    const slots = [...new Set(d.picks.map((p) => p.slot))].sort((a, b) => a - b);
-    const slotTeam = new Map(d.picks.filter((p) => p.round === 1).map((p) => [p.slot, teamByRoster(s, p.rosterId)]));
-    const rounds = Array.from({ length: Math.max(...d.picks.map((p) => p.round)) }, (_, i) => i + 1);
-    const cell = new Map(d.picks.map((p) => [`${p.round}-${p.slot}`, p]));
+  {drafts.map(({ s, d }) => {
+    const rounds = [...new Set(d.picks.map((p) => p.round))].sort((a, b) => a - b);
+    const id = `draft-${d.id}`;
     return (
-      <section>
+      <section id={id}>
         <h2>{d.season} {d.isStartup ? 'Startup Draft' : 'Rookie Draft'}</h2>
         <p class="small muted">{d.rounds} rounds · {d.type === 'snake' ? 'Snake' : d.type === 'linear' ? 'Linear' : d.type} · {d.picks.length} picks</p>
-        <div class="table-wrap draft-board">
-          <table>
-            <thead>
-              <tr>
-                <th>Rd</th>
-                {slots.map((slot) => <th><TeamBadge team={slotTeam.get(slot)} size={22} sub={false} fallback={`Slot ${slot}`} /></th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {rounds.map((r) => (
-                <tr>
-                  <th>{ordinal(r)}</th>
-                  {slots.map((slot) => {
-                    const p = cell.get(`${r}-${slot}`);
-                    if (!p) return <td />;
-                    const traded = slotTeam.get(slot)?.rosterId !== p.rosterId;
-                    return (
-                      <td class={`pick pick-${p.position}`} title={`${p.round}.${String(p.slot).padStart(2, '0')} (#${p.pickNo}) ${p.name}${traded ? ` · picked by ${teamByRoster(s, p.rosterId)?.teamName}` : ''}`}>
-                        <span class="pick-no">{p.round}.{String(p.slot).padStart(2, '0')}</span>
-                        <span class="pick-name">{p.name}</span>
-                        <span class="pick-meta">{p.position} · {p.nflTeam}{traded && <> · via trade</>}</span>
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {rounds.length > 3 && (
+          <nav class="round-jump" aria-label="Jump to round">
+            {rounds.map((r) => <a href={`#${id}-r${r}`}>{r}</a>)}
+          </nav>
+        )}
+        {rounds.map((r) => (
+          <div class="round" id={`${id}-r${r}`}>
+            <h3>{ordinal(r)} Round</h3>
+            <ol class="picks">
+              {d.picks.filter((p) => p.round === r).map((p) => {
+                const team = teamByRoster(s, p.rosterId);
+                return (
+                  <li class={`pick pick-${p.position}`}>
+                    <span class="pick-top"><span>{p.round}.{String(p.slot).padStart(2, '0')}</span><span>{p.position} · {p.nflTeam}</span></span>
+                    <span class="pick-name">{p.name}</span>
+                    {team ? <a class="pick-team" href={teamUrl(team.slug)}>{team.teamName}</a> : <span class="pick-team">Roster {p.rosterId}</span>}
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+        ))}
       </section>
     );
   })}
 </Layout>
 
 <style>
-  .draft-board { max-height: 80vh; }
-  .draft-board table { border-collapse: separate; border-spacing: 3px; }
-  .draft-board th, .draft-board td { border: 0; }
-  .draft-board thead th { position: sticky; top: 0; z-index: 2; background: var(--surface); }
-  .draft-board tbody th { position: sticky; left: 0; z-index: 1; background: var(--surface); text-align: center; }
-  .pick { min-width: 118px; max-width: 140px; white-space: normal; border-radius: 6px; padding: 6px 8px; vertical-align: top; color: #fff; line-height: 1.2; }
-  .pick span { display: block; }
-  .pick-no { font-size: 0.68rem; opacity: 0.85; }
-  .pick-name { font-weight: 700; font-size: 0.85rem; }
-  .pick-meta { font-size: 0.7rem; opacity: 0.9; }
+  .round-jump { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+  .round-jump a { min-width: 34px; text-align: center; padding: 4px 6px; border-radius: 6px; background: var(--surface); border: 1px solid var(--border); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+  .round { scroll-margin-top: 110px; }
+  .round h3 { margin: 18px 0 8px; }
+  .picks { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+  .pick { border-radius: 8px; padding: 7px 9px; color: #fff; line-height: 1.25; min-width: 0; }
+  .pick-top { display: flex; justify-content: space-between; gap: 6px; font-size: 0.7rem; opacity: 0.9; }
+  .pick-name { display: block; font-weight: 700; font-size: 0.9rem; overflow-wrap: anywhere; }
+  .pick-team { display: block; font-size: 0.72rem; color: #fff; opacity: 0.9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pick-QB { background: #c23a6c; } .pick-RB { background: #0f8a6c; } .pick-WR { background: #2a6fc9; } .pick-TE { background: #c9721e; }
   .pick-K, .pick-DEF { background: #5b6472; }
+  @media (max-width: 400px) { .picks { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 </style>
