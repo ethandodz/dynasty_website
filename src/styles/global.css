@@ -61,6 +61,7 @@ h2 { font-size: 1.45rem; text-transform: uppercase; margin-top: 1.6em; }
 h3 { font-size: 1.15rem; }
 
 .wrap { width: 100%; max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+.wrap.wrap-wide { max-width: 1600px; }
 
 /* Header */
 .site-header { background: var(--navy); color: #fff; position: sticky; top: 0; z-index: 10; }
