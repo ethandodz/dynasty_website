@@ -48,7 +48,7 @@ function normalize(s: string): string {
     .replace(/^(team|the|los|las|el)/, '');
 }
 
-function matchTeam(name: string, teams: Team[], manager: string | null): Team | null {
+export function matchTeam(name: string, teams: Team[], manager: string | null): Team | null {
   const n = normalize(name);
   const alias = Object.entries(TEAM_ALIASES).find(([k]) => normalize(k) === n);
   if (alias) {
@@ -149,7 +149,7 @@ function parseHeader(rank: number, header: string): ParsedEntry {
   return { rank, name, manager, writtenRecord, lines: rest ? [rest] : [] };
 }
 
-function toParagraphs(lines: string[]): string[] {
+export function toParagraphs(lines: string[]): string[] {
   const out: string[] = [];
   let buf: string[] = [];
   for (const l of lines) {

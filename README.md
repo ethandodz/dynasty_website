@@ -36,6 +36,19 @@ To fix a typo later, open the file, tap the pencil icon, edit and commit.
 If a team name ever doesn't match, the page still shows the name you wrote, just without
 the team's logo and link. Add the nickname to `TEAM_ALIASES` in [`src/config.ts`](src/config.ts).
 
+## Weekly matchup recaps
+
+Recaps live in the [`recaps`](recaps/) folder, one file per week: `2026-week-9.md`.
+Write an optional intro, then one section per matchup:
+
+```
+## BangUpBobby vs juebelacker | Headline goes here
+The article...
+```
+
+Use usernames, team names or first names for the two teams. The site finds the game and
+adds the scoreboard, records and top performers from Sleeper automatically.
+
 ## Each new season
 
 When the league renews on Sleeper it gets a **new league ID**. Paste the new ID into

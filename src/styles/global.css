@@ -76,11 +76,11 @@ h3 { font-size: 1.15rem; }
 .site-nav a.active { color: #fff; border-bottom-color: var(--gold); }
 .nav-short { display: none; }
 
-/* Phones and small tablets: show every menu item at once (2 rows of 4), no sideways scrolling. */
-@media (max-width: 760px) {
+/* Phones and tablets: show every menu item at once (3 rows of 3), no sideways scrolling. */
+@media (max-width: 960px) {
   .site-header { position: static; }
   .header-inner { height: 52px; }
-  .nav-inner { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; padding: 6px 8px; overflow: visible; }
+  .nav-inner { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding: 6px 8px; overflow: visible; }
   .site-nav a { text-align: center; padding: 8px 2px; font-size: 0.9rem; border-bottom: 0; border-radius: 6px; }
   .site-nav a.active { background: rgba(255, 255, 255, 0.12); box-shadow: inset 0 -3px 0 var(--gold); }
   .nav-full { display: none; }
@@ -212,3 +212,21 @@ a.team-badge:hover .team-badge-name { color: var(--accent); }
 
 .trophy { font-size: 2.6rem; line-height: 1; }
 .empty { text-align: center; padding: 32px 18px; color: var(--muted); }
+
+/* Recaps */
+.recap { scroll-margin-top: 120px; }
+.scoreboard { display: grid; gap: 6px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.score-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 12px; }
+.score-row .team-badge { min-width: 0; }
+.score-rec { color: var(--muted); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.score-pts { font-family: var(--display); font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 4.2ch; text-align: right; }
+.score-row.loser .score-pts { color: var(--muted); font-weight: 500; }
+.recap-headline { text-transform: none; font-size: 1.35rem; margin: 14px 0 8px; }
+.recap-body p { margin: 0 0 0.75em; }
+.recap-stars { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+.recap-jump { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+.recap-jump a { padding: 4px 10px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); font-size: 0.85rem; }
+@media (max-width: 760px) { .recap { scroll-margin-top: 12px; } }
+.recap-teaser { display: flex; flex-direction: column; gap: 4px; color: var(--text); }
+.recap-teaser:hover { text-decoration: none; border-color: var(--accent); }
+.recap-teaser strong { font-size: 1.05rem; line-height: 1.3; }

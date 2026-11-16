@@ -58,6 +58,8 @@ export interface Team {
 export interface GameSide {
   rosterId: number;
   points: number;
+  /** Starting lineup with each player's points (player id '0' = empty slot). */
+  starters: { id: string; points: number }[];
 }
 
 export interface Game {
@@ -162,6 +164,8 @@ interface RawMatchup {
   roster_id: number;
   matchup_id: number | null;
   points: number;
+  starters?: string[] | null;
+  starters_points?: number[] | null;
 }
 interface RawBracket {
   r: number;
@@ -280,6 +284,11 @@ async function loadSeason(league: RawLeague, isCurrent: boolean): Promise<Season
     weeks.map((w) => get<RawMatchup[]>(`${API}/league/${id}/matchups/${w}`, done ? 60 * 24 * 30 : CACHE_MINUTES).catch(() => []))
   );
   const games: Game[] = [];
+  const side = (m: RawMatchup): GameSide => ({
+    rosterId: m.roster_id,
+    points: m.points,
+    starters: (m.starters ?? []).map((id, i) => ({ id, points: m.starters_points?.[i] ?? 0 })),
+  });
   matchupWeeks.forEach((rows, i) => {
     const week = i + 1;
     const byMatchup = new Map<number, RawMatchup[]>();
@@ -302,8 +311,8 @@ async function loadSeason(league: RawLeague, isCurrent: boolean): Promise<Season
         season: league.season,
         week,
         kind,
-        a: { rosterId: x.roster_id, points: x.points },
-        b: { rosterId: y.roster_id, points: y.points },
+        a: side(x),
+        b: side(y),
       });
     }
   });

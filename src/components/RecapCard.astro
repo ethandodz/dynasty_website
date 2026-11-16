@@ -1,0 +1,44 @@
+---
+import TeamBadge from './TeamBadge.astro';
+import type { Player, Season } from '../lib/sleeper';
+import type { Recap } from '../lib/recaps';
+import { fmt, recordStr, recordThroughWeek } from '../lib/stats';
+interface Props {
+  recap: Recap;
+  season: Season;
+  week: number;
+  players: Record<string, Player>;
+}
+const { recap, season, week, players } = Astro.props;
+const sideOf = (rid: number) => (recap.game.a.rosterId === rid ? recap.game.a : recap.game.b);
+const rows = [recap.winner, recap.loser].map((team) => {
+  const side = sideOf(team.rosterId);
+  const r = recordThroughWeek(season, team.rosterId, week);
+  const top = [...side.starters].filter((s) => s.id !== '0').sort((a, b) => b.points - a.points).slice(0, 2);
+  return { team, points: side.points, record: recordStr(r.wins, r.losses, r.ties), top };
+});
+const name = (id: string) => players[id]?.name ?? `Player ${id}`;
+---
+<article class="card recap" id={recap.anchor}>
+  <div class="scoreboard">
+    {rows.map((row, i) => (
+      <div class:list={['score-row', { loser: i === 1 }]}>
+        <TeamBadge team={row.team} size={34} sub={false} />
+        <span class="score-rec">{row.record}</span>
+        <span class="score-pts">{fmt(row.points)}</span>
+      </div>
+    ))}
+  </div>
+  <h2 class="recap-headline">{recap.headline}</h2>
+  <div class="recap-body">
+    {recap.paragraphs.map((p) => <p>{p}</p>)}
+  </div>
+  <div class="recap-stars">
+    {rows.map((row) => (
+      <div>
+        <span class="stat-label">{row.team.teamName}</span>
+        {row.top.map((p) => <div class="small">{name(p.id)} <strong>{fmt(p.points, 1)}</strong></div>)}
+      </div>
+    ))}
+  </div>
+</article>
